@@ -21,7 +21,9 @@ class Workbook(object):
         self.close()
 
     def get_file(self, fn):
-        return self._zf.open(fn, 'r')
+        fp = self._zf.open(fn, 'r')
+        fp.filelen = self._zf.getinfo(fn).file_size
+        return fp
 
     def _parse(self):
         self.props = None
@@ -60,9 +62,7 @@ class Workbook(object):
         if idx < 1 or idx > len(self.sheets):
             raise IndexError('sheet index out of range')
 
-        fp = self.get_file('xl/worksheets/sheet{}.bin'.format(idx))
-        rels_fp = self.get_file('xl/worksheets/_rels/sheet{}.bin.rels'.format(idx))
-        return Worksheet(self, self.sheets[idx - 1], fp, rels_fp)
+        return Worksheet(self.sheets[idx - 1], self, idx)
 
     def get_shared_string(self, idx):
         if self.stringtable is not None:

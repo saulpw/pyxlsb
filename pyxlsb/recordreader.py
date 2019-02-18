@@ -3,6 +3,8 @@ from io import BytesIO
 from . import records as recs
 from . import recordtypes as rt
 
+from visidata import Progress
+
 try:
     from .cdatareader import DataReader
 except ImportError:
@@ -89,12 +91,6 @@ class RecordReader(object):
             self._fp = BytesIO(fp)
         self._enc = enc
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return self.next()
-
     def _read_type(self):
         value = self._fp.read(1)
         if not value:
@@ -121,16 +117,19 @@ class RecordReader(object):
             i += 1
         return value
 
-    def next(self):
-        rectype = self._read_type()
-        if rectype is None:
-            raise StopIteration
+    def __iter__(self):
+        with Progress(total=self._fp.filelen) as prog:
+          while True:
+            rectype = self._read_type()
+            if rectype is None:
+                raise StopIteration
 
-        reclen = self._read_len()
-        if reclen is None:
-            raise StopIteration
+            reclen = self._read_len()
+            if reclen is None:
+                raise StopIteration
 
-        data = self._fp.read(reclen)
-        cls = self._records.get(rectype, self._default_record)
-        res = cls.read(DataReader(data, enc=self._enc), rectype, reclen)
-        return (rectype, res)
+            data = self._fp.read(reclen)
+            cls = self._records.get(rectype, self._default_record)
+            res = cls.read(DataReader(data, enc=self._enc), rectype, reclen)
+            prog.addProgress(reclen)
+            yield (rectype, res)

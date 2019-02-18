@@ -37,10 +37,9 @@ class Cell(object):
 
 
 class Worksheet(Sheet):
-    def __init__(self, workbook, name, fp, rels_fp=None):
+    def __init__(self, name, workbook, idx):
         super().__init__(name, workbook=workbook)
-        self._fp = fp
-        self._rels_fp = rels_fp
+        self.wbidx = idx
 
     @asyncthread
     def reload(self):
@@ -61,6 +60,9 @@ class Worksheet(Sheet):
             self.addRow(row)
 
     def iterload(self):
+        self._fp = self.workbook.get_file('xl/worksheets/sheet{}.bin'.format(self.wbidx))
+        self._rels_fp = self.workbook.get_file('xl/worksheets/_rels/sheet{}.bin.rels'.format(self.wbidx))
+
         self.dimension = None
         self.hyperlinks = dict()
 
