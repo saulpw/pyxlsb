@@ -1,9 +1,8 @@
 from .workbook import Workbook
-from .xlsbpackage import XlsbPackage
-
+from zipfile import ZipFile
 
 def open_workbook(name, *args, **kwargs):
-    return Workbook(XlsbPackage(name), *args, **kwargs)
+    return Workbook(ZipFile(name, 'r'), *args, **kwargs)
 
 
 def convert_date(date):

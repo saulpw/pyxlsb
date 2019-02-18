@@ -1,7 +1,6 @@
 import sys
 from . import recordtypes as rt
 from .recordreader import RecordReader
-from .stringtable import StringTable
 from .styles import Styles
 from .worksheet import Worksheet
 from datetime import datetime, timedelta
@@ -11,8 +10,8 @@ if sys.version_info > (3,):
 
 
 class Workbook(object):
-    def __init__(self, pkg):
-        self._pkg = pkg
+    def __init__(self, zf):
+        self._zf = zf
         self._parse()
 
     def __enter__(self):
@@ -21,12 +20,15 @@ class Workbook(object):
     def __exit__(self, type, value, traceback):
         self.close()
 
+    def get_file(self, fn):
+        return self._zf.open(fn, 'r')
+
     def _parse(self):
         self.props = None
         self.sheets = list()
         self.stringtable = None
 
-        f = self._pkg.get_workbook_part()
+        f = self.get_file('xl/workbook.bin')
         for rectype, rec in RecordReader(f):
             if rectype == rt.WB_PROP:
                 self.props = rec
@@ -35,11 +37,16 @@ class Workbook(object):
             elif rectype == rt.END_BUNDLE_SHS:
                 break
 
-        ssfp = self._pkg.get_sharedstrings_part()
+        ssfp = self.get_file('xl/sharedStrings.bin')
         if ssfp is not None:
-            self.stringtable = StringTable(ssfp)
+            self.stringtable = list()
+            for rectype, rec in RecordReader(ssfp):
+                if rectype == rt.SST_ITEM:
+                    self.stringtable.append(rec.t)
+                elif rectype == rt.END_SST:
+                    break
 
-        stylesfp = self._pkg.get_styles_part()
+        stylesfp = self.get_file('xl/styles.bin')
         if stylesfp is not None:
             self.styles = Styles(stylesfp)
 
@@ -53,13 +60,13 @@ class Workbook(object):
         if idx < 1 or idx > len(self.sheets):
             raise IndexError('sheet index out of range')
 
-        fp = self._pkg.get_worksheet_part(idx)
-        rels_fp = self._pkg.get_worksheet_rels(idx) if rels else None
+        fp = self.get_file('xl/worksheets/sheet{}.bin'.format(idx))
+        rels_fp = self.get_file('xl/worksheets/_rels/sheet{}.bin.rels'.format(idx))
         return Worksheet(self, self.sheets[idx - 1], fp, rels_fp)
 
     def get_shared_string(self, idx):
         if self.stringtable is not None:
-            return self.stringtable.get_string(idx)
+            return self.stringtable[idx]
 
     def convert_date(self, value):
         if not isinstance(value, int) and not isinstance(value, float):
@@ -86,7 +93,7 @@ class Workbook(object):
         return (datetime.min + timedelta(seconds=int((value % 1) * 24 * 60 * 60))).time()
 
     def close(self):
-        self._pkg.close()
+        self._zf.close()
         if self.stringtable is not None:
             self.stringtable.close()
         if self.styles is not None:
