@@ -1,6 +1,3 @@
-import os
-import shutil
-from tempfile import TemporaryFile
 from zipfile import ZipFile
 
 
@@ -15,15 +12,7 @@ class ZipPackage(object):
         self.close()
 
     def get_file(self, name):
-        tf = TemporaryFile()
-        try:
-            with self._zf.open(name, 'r') as zf:
-                shutil.copyfileobj(zf, tf)
-            tf.seek(0, os.SEEK_SET)
-            return tf
-        except KeyError:
-            tf.close()
-            return None
+        return self._zf.open(name, 'r')
 
     def close(self):
         self._zf.close()

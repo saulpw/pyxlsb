@@ -26,14 +26,14 @@ class Workbook(object):
         self.sheets = list()
         self.stringtable = None
 
-        with self._pkg.get_workbook_part() as f:
-            for rectype, rec in RecordReader(f):
-                if rectype == rt.WB_PROP:
-                    self.props = rec
-                elif rectype == rt.BUNDLE_SH:
-                    self.sheets.append(rec.name)
-                elif rectype == rt.END_BUNDLE_SHS:
-                    break
+        f = self._pkg.get_workbook_part()
+        for rectype, rec in RecordReader(f):
+            if rectype == rt.WB_PROP:
+                self.props = rec
+            elif rectype == rt.BUNDLE_SH:
+                self.sheets.append(rec.name)
+            elif rectype == rt.END_BUNDLE_SHS:
+                break
 
         ssfp = self._pkg.get_sharedstrings_part()
         if ssfp is not None:

@@ -25,7 +25,6 @@ class Styles(object):
         self._cell_styles = list()
         self._cell_style_xfs = list()
 
-        self._fp.seek(0, os.SEEK_SET)
         for rectype, rec in RecordReader(self._fp):
             # TODO
             if rectype == rt.END_STYLE_SHEET:

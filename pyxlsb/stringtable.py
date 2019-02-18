@@ -19,7 +19,6 @@ class StringTable(object):
 
     def _parse(self):
         strings = list()
-        self._fp.seek(0, os.SEEK_SET)
         for rectype, rec in RecordReader(self._fp):
             if rectype == rt.SST_ITEM:
                 strings.append(rec.t)
